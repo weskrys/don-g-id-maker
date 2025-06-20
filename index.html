@@ -7,6 +7,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.0/jszip.min.js"></script>
   <style>
     * { box-sizing: border-box; }
     body { font-family: Arial, sans-serif; padding: 20px; margin: 0; }
@@ -32,9 +33,9 @@
       <label>Upload Photo: <input type="file" id="photo" accept="image/*" /></label>
       <button onclick="generatePDF()">Download PDF</button>
       <hr>
-      <h3>Batch Import CSV</h3>
-      <input type="file" id="csvUpload" accept=".csv" />
-      <button onclick="generateBatchPDF()">Generate Batch PDF</button>
+      <h3>Batch Import ZIP (CSV + Photos)</h3>
+      <input type="file" id="zipUpload" accept=".zip" />
+      <button onclick="generateBatchPDFfromZip()">Generate Batch PDF</button>
     </div>
     <div class="preview">
       <div id="id-front" class="id-card">
@@ -87,12 +88,19 @@
       pdf.save("student-id.pdf");
     }
 
-    async function generateBatchPDF() {
-      const input = document.getElementById("csvUpload");
-      if (!input.files[0]) return alert("Please upload a CSV file");
-      const file = input.files[0];
+    async function generateBatchPDFfromZip() {
+      const zipInput = document.getElementById("zipUpload");
+      if (!zipInput.files[0]) return alert("Please upload a ZIP file");
 
-      Papa.parse(file, {
+      const zipFile = zipInput.files[0];
+      const jszip = new JSZip();
+      const zip = await jszip.loadAsync(zipFile);
+
+      const csvFile = Object.values(zip.files).find(f => f.name.endsWith(".csv"));
+      if (!csvFile) return alert("CSV file not found in ZIP");
+
+      const csvContent = await csvFile.async("string");
+      Papa.parse(csvContent, {
         header: true,
         complete: async function(results) {
           const { jsPDF } = window.jspdf;
@@ -102,7 +110,19 @@
             document.getElementById("preview-name").textContent = row.name || "";
             document.getElementById("preview-grade").textContent = row.grade || "";
             document.getElementById("preview-studentNo").textContent = row.studentNo || "";
-            document.getElementById("preview-photo").src = row.photo || "";
+
+            const photoFile = zip.file(row.photo);
+            if (photoFile) {
+              const blob = await photoFile.async("blob");
+              const reader = new FileReader();
+              const dataUrl = await new Promise(resolve => {
+                reader.onload = () => resolve(reader.result);
+                reader.readAsDataURL(blob);
+              });
+              document.getElementById("preview-photo").src = dataUrl;
+            } else {
+              document.getElementById("preview-photo").src = "";
+            }
 
             const front = document.getElementById("id-front");
             const back = document.getElementById("id-back");
