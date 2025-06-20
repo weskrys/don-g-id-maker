@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>School ID Maker</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    .container { display: flex; gap: 20px; }
+    .form, .preview { flex: 1; }
+    .id-card { width: 300px; height: 180px; border: 1px solid #000; position: relative; background: #f0f0f0; margin-bottom: 10px; }
+    .photo { position: absolute; top: 20px; left: 20px; width: 60px; height: 80px; background: #ccc; object-fit: cover; }
+    .details { position: absolute; top: 20px; left: 100px; font-size: 14px; }
+    .back { background: #ddd; display: flex; align-items: center; justify-content: center; }
+  </style>
+</head>
+<body>
+  <h1>School ID Maker</h1>
+  <div class="container">
+    <div class="form">
+      <label>Name: <input type="text" id="name" /></label><br />
+      <label>Grade & Section: <input type="text" id="grade" /></label><br />
+      <label>Student Number: <input type="text" id="studentNo" /></label><br />
+      <label>Upload Photo: <input type="file" id="photo" accept="image/*" /></label><br />
+      <button onclick="generatePDF()">Download PDF</button>
+    </div>
+
+    <div class="preview">
+      <div id="id-front" class="id-card">
+        <img id="preview-photo" class="photo" />
+        <div class="details">
+          <div id="preview-name">Student Name</div>
+          <div id="preview-grade">Grade & Section</div>
+          <div id="preview-studentNo">Student No.</div>
+        </div>
+      </div>
+      <div id="id-back" class="id-card back">
+        <div>BACK OF ID</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById("name").addEventListener("input", e => {
+      document.getElementById("preview-name").textContent = e.target.value;
+    });
+    document.getElementById("grade").addEventListener("input", e => {
+      document.getElementById("preview-grade").textContent = e.target.value;
+    });
+    document.getElementById("studentNo").addEventListener("input", e => {
+      document.getElementById("preview-studentNo").textContent = e.target.value;
+    });
+    document.getElementById("photo").addEventListener("change", e => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(event) {
+          document.getElementById("preview-photo").src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    async function generatePDF() {
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF();
+
+      const front = document.getElementById("id-front");
+      const back = document.getElementById("id-back");
+
+      const frontCanvas = await html2canvas(front);
+      const backCanvas = await html2canvas(back);
+
+      const frontImg = frontCanvas.toDataURL("image/png");
+      const backImg = backCanvas.toDataURL("image/png");
+
+      pdf.addImage(frontImg, "PNG", 10, 10, 90, 54);
+      pdf.addPage();
+      pdf.addImage(backImg, "PNG", 10, 10, 90, 54);
+
+      pdf.save("student-id.pdf");
+    }
+  </script>
+</body>
+</html>
