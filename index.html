@@ -6,27 +6,36 @@
   <title>School ID Maker</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; padding: 20px; }
-    .container { display: flex; gap: 20px; }
-    .form, .preview { flex: 1; }
-    .id-card { width: 300px; height: 180px; border: 1px solid #000; position: relative; background: #f0f0f0; margin-bottom: 10px; }
-    .photo { position: absolute; top: 20px; left: 20px; width: 60px; height: 80px; background: #ccc; object-fit: cover; }
-    .details { position: absolute; top: 20px; left: 100px; font-size: 14px; }
-    .back { background: #ddd; display: flex; align-items: center; justify-content: center; }
+    * { box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; padding: 20px; margin: 0; }
+    h1 { text-align: center; }
+    .container { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; }
+    .form, .preview { flex: 1 1 300px; max-width: 500px; }
+    .id-card { width: 300px; height: 180px; border: 1px solid #000; position: relative; background: linear-gradient(#e9f0fa, #d0e0f0); margin-bottom: 10px; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+    .photo { position: absolute; top: 20px; left: 20px; width: 60px; height: 80px; background: #ccc; object-fit: cover; border-radius: 5px; }
+    .details { position: absolute; top: 20px; left: 100px; font-size: 14px; color: #333; line-height: 1.4; }
+    .back { background: #dfeaf2; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #555; }
+    input[type="file"] { margin-bottom: 10px; }
+    label { display: block; margin: 5px 0; }
+    button { margin-top: 10px; padding: 10px 15px; font-size: 14px; cursor: pointer; }
   </style>
 </head>
 <body>
   <h1>School ID Maker</h1>
   <div class="container">
     <div class="form">
-      <label>Name: <input type="text" id="name" /></label><br />
-      <label>Grade & Section: <input type="text" id="grade" /></label><br />
-      <label>Student Number: <input type="text" id="studentNo" /></label><br />
-      <label>Upload Photo: <input type="file" id="photo" accept="image/*" /></label><br />
+      <label>Name: <input type="text" id="name" /></label>
+      <label>Grade & Section: <input type="text" id="grade" /></label>
+      <label>Student Number: <input type="text" id="studentNo" /></label>
+      <label>Upload Photo: <input type="file" id="photo" accept="image/*" /></label>
       <button onclick="generatePDF()">Download PDF</button>
+      <hr>
+      <h3>Batch Import CSV</h3>
+      <input type="file" id="csvUpload" accept=".csv" />
+      <button onclick="generateBatchPDF()">Generate Batch PDF</button>
     </div>
-
     <div class="preview">
       <div id="id-front" class="id-card">
         <img id="preview-photo" class="photo" />
@@ -66,21 +75,50 @@
     async function generatePDF() {
       const { jsPDF } = window.jspdf;
       const pdf = new jsPDF();
-
       const front = document.getElementById("id-front");
       const back = document.getElementById("id-back");
-
       const frontCanvas = await html2canvas(front);
       const backCanvas = await html2canvas(back);
-
       const frontImg = frontCanvas.toDataURL("image/png");
       const backImg = backCanvas.toDataURL("image/png");
-
       pdf.addImage(frontImg, "PNG", 10, 10, 90, 54);
       pdf.addPage();
       pdf.addImage(backImg, "PNG", 10, 10, 90, 54);
-
       pdf.save("student-id.pdf");
+    }
+
+    async function generateBatchPDF() {
+      const input = document.getElementById("csvUpload");
+      if (!input.files[0]) return alert("Please upload a CSV file");
+      const file = input.files[0];
+
+      Papa.parse(file, {
+        header: true,
+        complete: async function(results) {
+          const { jsPDF } = window.jspdf;
+          const pdf = new jsPDF();
+          for (let i = 0; i < results.data.length; i++) {
+            const row = results.data[i];
+            document.getElementById("preview-name").textContent = row.name || "";
+            document.getElementById("preview-grade").textContent = row.grade || "";
+            document.getElementById("preview-studentNo").textContent = row.studentNo || "";
+            document.getElementById("preview-photo").src = row.photo || "";
+
+            const front = document.getElementById("id-front");
+            const back = document.getElementById("id-back");
+            const frontCanvas = await html2canvas(front);
+            const backCanvas = await html2canvas(back);
+            const frontImg = frontCanvas.toDataURL("image/png");
+            const backImg = backCanvas.toDataURL("image/png");
+
+            if (i !== 0) pdf.addPage();
+            pdf.addImage(frontImg, "PNG", 10, 10, 90, 54);
+            pdf.addPage();
+            pdf.addImage(backImg, "PNG", 10, 10, 90, 54);
+          }
+          pdf.save("batch-ids.pdf");
+        }
+      });
     }
   </script>
 </body>
