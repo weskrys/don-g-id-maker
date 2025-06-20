@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>School ID Maker - Fixed Size & Working Images</title>
+  <title>School ID Maker - Vertical ID</title>
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -12,10 +12,10 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.0/jszip.min.js"></script>
 
   <style>
-    /* Fixed size preview, no stretching */
+    /* Vertical portrait ID card */
     .id-card {
-      width: 324px !important;   /* 3.375" x 96dpi */
-      height: 204px !important;  /* 2.125" x 96dpi */
+      width: 204px !important;   /* 2.125" wide */
+      height: 324px !important;  /* 3.375" tall */
       max-width: none !important;
       max-height: none !important;
       flex: none !important;
@@ -30,7 +30,7 @@
     .photo {
       position: absolute;
       top: 20px;
-      left: 20px;
+      left: 62px;  /* center horizontally (204 - 80)/2 = 62 */
       width: 80px !important;
       height: 100px !important;
       background: #ccc;
@@ -40,18 +40,21 @@
     }
     .details {
       position: absolute;
-      top: 20px;
-      left: 120px;
+      top: 140px;
+      left: 20px;
+      width: 164px; /* 204 - 40 padding */
       font-size: 16px;
       color: #333;
       line-height: 1.4;
       font-weight: 600;
-      max-width: 180px;
+      text-align: center;
     }
     .details div {
       margin-bottom: 8px;
     }
     .back {
+      width: 204px !important;
+      height: 324px !important;
       background: #dfeaf2;
       display: flex;
       align-items: center;
@@ -59,8 +62,6 @@
       font-weight: bold;
       color: #555;
       font-size: 18px;
-      height: 204px !important; /* match front height */
-      width: 324px !important;  /* match front width */
       border-radius: 10px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.2);
       margin-bottom: 10px;
@@ -70,7 +71,7 @@
 </head>
 <body>
   <div class="container py-4">
-    <h1 class="text-center mb-4">School ID Maker</h1>
+    <h1 class="text-center mb-4">School ID Maker (Vertical)</h1>
     <div class="row">
       <!-- Form Column -->
       <div class="col-md-5">
@@ -160,7 +161,7 @@
       const { jsPDF } = window.jspdf;
       const pdf = new jsPDF({
         unit: 'pt',
-        format: [243, 153] // standard ID size in points
+        format: [153, 243] // width=2.125"=153pt, height=3.375"=243pt
       });
 
       // Clone and offscreen attach
@@ -193,36 +194,11 @@
       const frontImg = frontCanvas.toDataURL("image/png");
       const backImg = backCanvas.toDataURL("image/png");
 
-      pdf.addImage(frontImg, "PNG", 0, 0, 243, 153);
+      pdf.addImage(frontImg, "PNG", 0, 0, 153, 243);
       pdf.addPage();
-      pdf.addImage(backImg, "PNG", 0, 0, 243, 153);
+      pdf.addImage(backImg, "PNG", 0, 0, 153, 243);
 
       pdf.save("student-id.pdf");
-    }
-
-    async function setPreviewData(row, zip=null) {
-      document.getElementById("preview-name").textContent = row.name || "";
-      document.getElementById("preview-grade").textContent = row.grade || "";
-      document.getElementById("preview-studentNo").textContent = row.studentNo || "";
-
-      const img = document.getElementById("preview-photo");
-      if (zip && row.photo) {
-        const photoFile = zip.file(row.photo);
-        if (photoFile) {
-          const blob = await photoFile.async("blob");
-          const reader = new FileReader();
-          const dataUrl = await new Promise(resolve => {
-            reader.onload = () => resolve(reader.result);
-            reader.readAsDataURL(blob);
-          });
-          img.src = dataUrl;
-          await waitForImageLoad(img);
-          return;
-        }
-      }
-      // fallback no image
-      img.src = "";
-      await waitForImageLoad(img);
     }
 
     async function generateBatchPDFfromZip() {
@@ -249,7 +225,7 @@
           const { jsPDF } = window.jspdf;
           const pdf = new jsPDF({
             unit: 'pt',
-            format: [243, 153] // standard ID size in points
+            format: [153, 243]
           });
 
           for (let i = 0; i < results.data.length; i++) {
@@ -306,9 +282,9 @@
             const backImg = backCanvas.toDataURL("image/png");
 
             if (i !== 0) pdf.addPage();
-            pdf.addImage(frontImg, "PNG", 0, 0, 243, 153);
+            pdf.addImage(frontImg, "PNG", 0, 0, 153, 243);
             pdf.addPage();
-            pdf.addImage(backImg, "PNG", 0, 0, 243, 153);
+            pdf.addImage(backImg, "PNG", 0, 0, 153, 243);
           }
           pdf.save("batch-ids.pdf");
         }
