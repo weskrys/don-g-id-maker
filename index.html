@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>School ID Maker (CSV Import + Single Upload)</title>
+  <title>School ID Maker (CSV + Photo Upload)</title>
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -60,7 +60,7 @@
 </head>
 <body>
   <div class="container py-4">
-    <h1 class="text-center mb-4">School ID Maker (CSV Only + Single Upload)</h1>
+    <h1 class="text-center mb-4">School ID Maker (CSV + Photo Upload)</h1>
     <div class="row">
       <div class="col-md-5">
         <form id="singleForm" onsubmit="return false;">
@@ -85,11 +85,16 @@
 
         <hr />
 
-        <h4>Batch Import (CSV Only)</h4>
+        <h4>Batch Import (CSV + Photos Upload)</h4>
         <div class="mb-3">
+          <label for="csvUpload" class="form-label">Upload CSV</label>
           <input type="file" id="csvUpload" accept=".csv" class="form-control" />
         </div>
-        <button type="button" class="btn btn-success w-100" onclick="generateBatchFromCSV()">Generate Batch PDF</button>
+        <div class="mb-3">
+          <label for="photoUpload" class="form-label">Upload Photos</label>
+          <input type="file" id="photoUpload" accept="image/*" multiple class="form-control" />
+        </div>
+        <button type="button" class="btn btn-success w-100" onclick="generateBatch()">Generate Batch PDF</button>
       </div>
 
       <div class="col-md-7 d-flex flex-column align-items-center">
@@ -150,16 +155,26 @@
       pdf.save("student-id.pdf");
     }
 
-    async function generateBatchFromCSV() {
-      const file = document.getElementById("csvUpload").files[0];
-      if (!file) return alert("Please upload a CSV file");
+    async function generateBatch() {
+      const csvFile = document.getElementById("csvUpload").files[0];
+      const photoFiles = document.getElementById("photoUpload").files;
 
-      Papa.parse(file, {
+      if (!csvFile || photoFiles.length === 0) {
+        alert("Please upload CSV and select photos.");
+        return;
+      }
+
+      // Build photo map: filename → file
+      const photoMap = {};
+      for (const file of photoFiles) {
+        photoMap[file.name.toLowerCase()] = file;
+      }
+
+      Papa.parse(csvFile, {
         header: true,
         complete: async ({ data }) => {
           const { jsPDF } = window.jspdf;
           const pdf = new jsPDF({ unit: 'pt', format: [1008, 612], orientation: 'landscape' });
-
           const renderArea = document.getElementById("render-area");
           const fronts = [], backs = [];
 
@@ -176,9 +191,20 @@
             front.querySelector("#preview-studentNo").textContent = row.studentNo;
 
             const imgEl = front.querySelector("#preview-photo");
-            if (row.photo) {
-              imgEl.src = row.photo;
+
+            const photoFilename = row.photo ? row.photo.trim().toLowerCase() : "";
+            const matchingFile = photoMap[photoFilename];
+
+            if (matchingFile) {
+              const dataUrl = await new Promise(resolve => {
+                const reader = new FileReader();
+                reader.onload = e => resolve(e.target.result);
+                reader.readAsDataURL(matchingFile);
+              });
+              imgEl.src = dataUrl;
               await waitForImageLoad(imgEl);
+            } else {
+              imgEl.src = "";
             }
 
             const frontCanvas = await html2canvas(front);
