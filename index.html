@@ -3,142 +3,143 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>School ID Maker (With Strand Selection)</title>
+  <title>School ID Maker (with Strand Select)</title>
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
 
   <style>
     .id-card {
+      width: 243px; /* 3.375 inch */
+      height: 153px; /* 2.125 inch */
       position: relative;
-      width: 450px;
-      height: 730px;
-      background-size: cover;
-      background-repeat: no-repeat;
       border: 1px solid #000;
-      margin-bottom: 10px;
+      border-radius: 10px;
+      background-size: cover;
+      background-position: center;
+      overflow: hidden;
     }
     .photo {
       position: absolute;
-      top: 160px; /* adjust here */
-      left: 135px; /* adjust here */
-      width: 180px;
-      height: 180px;
+      top: 110px; /* adjust */
+      left: 76px; /* adjust */
+      width: 80px;
+      height: 80px;
       object-fit: cover;
-      border: 2px solid #333;
-      background-color: #fff;
+      border: 1px solid #666;
+      background-color: white;
+      border-radius: 5px;
     }
-    .student-name {
+    .details {
       position: absolute;
-      top: 360px;
+      top: 200px; /* below photo */
+      left: 0;
       width: 100%;
       text-align: center;
-      font-size: 20px;
+      font-size: 14px;
       font-weight: bold;
       color: #000;
     }
-    .student-id {
+    .meta {
       position: absolute;
-      top: 400px;
-      width: 100%;
-      text-align: center;
-      font-size: 16px;
-      color: #333;
-    }
-    .date-issued {
-      position: absolute;
-      bottom: 130px;
-      left: 150px;
-      font-size: 14px;
-      color: #000;
-    }
-    .validity-period {
-      position: absolute;
-      bottom: 110px;
-      left: 150px;
-      font-size: 14px;
+      bottom: 30px;
+      left: 20px;
+      font-size: 12px;
       color: #000;
     }
   </style>
 </head>
 <body>
   <div class="container py-4">
-    <h1 class="text-center mb-4">School ID Maker (With Strand Selection)</h1>
+    <h1 class="text-center mb-4">School ID Maker (Strand Select + Batch CSV)</h1>
+
     <div class="row">
       <div class="col-md-5">
-        <form id="singleForm" onsubmit="return false;">
+        <form onsubmit="return false;">
+          <div class="mb-3">
+            <label class="form-label">Strand:</label><br>
+            <input type="radio" name="strand" value="abm" checked onchange="updateBackground()"> ABM
+            <input type="radio" name="strand" value="humss" onchange="updateBackground()"> HUMSS
+            <input type="radio" name="strand" value="gas" onchange="updateBackground()"> GAS
+          </div>
+
           <div class="mb-3">
             <label for="name" class="form-label">Student Name</label>
             <input type="text" id="name" class="form-control" placeholder="Student Name" />
           </div>
           <div class="mb-3">
-            <label for="studentId" class="form-label">Student ID</label>
-            <input type="text" id="studentId" class="form-control" placeholder="Student ID" />
+            <label for="studentNo" class="form-label">Student ID</label>
+            <input type="text" id="studentNo" class="form-control" placeholder="Student Number" />
           </div>
           <div class="mb-3">
             <label for="photo" class="form-label">Upload Photo</label>
             <input type="file" id="photo" accept="image/*" class="form-control" />
           </div>
+
           <div class="mb-3">
-            <label class="form-label">Strand</label>
-            <div>
-              <input type="radio" id="strand-abm" name="strand" value="abm" checked />
-              <label for="strand-abm">ABM</label>
-              <input type="radio" id="strand-humss" name="strand" value="humss" />
-              <label for="strand-humss">HUMSS</label>
-              <input type="radio" id="strand-gas" name="strand" value="gas" />
-              <label for="strand-gas">GAS</label>
-            </div>
+            <label for="dateIssued" class="form-label">Date Issued</label>
+            <input type="text" id="dateIssued" class="form-control" value="03 NOV 2023" />
           </div>
+          <div class="mb-3">
+            <label for="validityPeriod" class="form-label">Validity Period</label>
+            <input type="text" id="validityPeriod" class="form-control" value="Two (2) Years Only" />
+          </div>
+
           <button type="button" class="btn btn-primary w-100" onclick="generatePDF()">Download PDF</button>
         </form>
+
+        <hr />
+
+        <h4>Batch Import (CSV + Photos Upload)</h4>
+        <div class="mb-3">
+          <label for="csvUpload" class="form-label">Upload CSV</label>
+          <input type="file" id="csvUpload" accept=".csv" class="form-control" />
+        </div>
+        <div class="mb-3">
+          <label for="photoUpload" class="form-label">Upload Photos</label>
+          <input type="file" id="photoUpload" accept="image/*" multiple class="form-control" />
+        </div>
+        <button type="button" class="btn btn-success w-100" onclick="generateBatch()">Generate Batch PDF</button>
       </div>
 
       <div class="col-md-7 d-flex flex-column align-items-center">
         <div id="id-front" class="id-card" style="background-image: url('bg-abm.png');">
           <img id="preview-photo" class="photo" alt="Student Photo" />
-          <div id="preview-name" class="student-name">Student Name</div>
-          <div id="preview-studentId" class="student-id">Student ID</div>
-          <div class="date-issued">Date Issued: 03 NOV 2023</div>
-          <div class="validity-period">Validity Period: Two (2) Years Only</div>
+          <div class="details">
+            <div id="preview-name">Student Name</div>
+            <div id="preview-studentNo">Student ID</div>
+          </div>
+          <div class="meta">
+            <div>Date Issued: <span id="preview-dateIssued">03 NOV 2023</span></div>
+            <div>Validity: <span id="preview-validityPeriod">Two (2) Years Only</span></div>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
   <script>
-    const preview = {
-      name: document.getElementById("preview-name"),
-      studentId: document.getElementById("preview-studentId"),
-      photo: document.getElementById("preview-photo"),
-      card: document.getElementById("id-front")
-    };
+    function updateBackground() {
+      const strand = document.querySelector('input[name="strand"]:checked').value;
+      const bg = `bg-${strand}.png`;
+      document.getElementById("id-front").style.backgroundImage = `url('${bg}')`;
+    }
 
-    document.getElementById("name").addEventListener("input", e => preview.name.textContent = e.target.value);
-    document.getElementById("studentId").addEventListener("input", e => preview.studentId.textContent = e.target.value);
+    document.getElementById("name").addEventListener("input", e => document.getElementById("preview-name").textContent = e.target.value);
+    document.getElementById("studentNo").addEventListener("input", e => document.getElementById("preview-studentNo").textContent = e.target.value);
+    document.getElementById("dateIssued").addEventListener("input", e => document.getElementById("preview-dateIssued").textContent = e.target.value);
+    document.getElementById("validityPeriod").addEventListener("input", e => document.getElementById("preview-validityPeriod").textContent = e.target.value);
     document.getElementById("photo").addEventListener("change", e => {
       const file = e.target.files[0];
       if (file) {
         const reader = new FileReader();
-        reader.onload = e => preview.photo.src = e.target.result;
+        reader.onload = e => document.getElementById("preview-photo").src = e.target.result;
         reader.readAsDataURL(file);
       } else {
-        preview.photo.src = "";
+        document.getElementById("preview-photo").src = "";
       }
-    });
-
-    document.querySelectorAll('input[name="strand"]').forEach(radio => {
-      radio.addEventListener("change", e => {
-        const strand = e.target.value;
-        if (strand === "abm") {
-          preview.card.style.backgroundImage = "url('bg-abm.png')";
-        } else if (strand === "humss") {
-          preview.card.style.backgroundImage = "url('bg-humss.png')";
-        } else if (strand === "gas") {
-          preview.card.style.backgroundImage = "url('bg-gas.png')";
-        }
-      });
     });
 
     async function waitForImageLoad(img) {
@@ -150,11 +151,83 @@
 
     async function generatePDF() {
       const { jsPDF } = window.jspdf;
-      const pdf = new jsPDF({ unit: 'pt', format: [450, 730] });
-      await waitForImageLoad(preview.photo);
-      const frontCanvas = await html2canvas(preview.card);
-      pdf.addImage(frontCanvas.toDataURL(), "PNG", 0, 0, 450, 730);
+      const pdf = new jsPDF({ unit: 'pt', format: [243, 153] });
+      await waitForImageLoad(document.getElementById("preview-photo"));
+      const frontCanvas = await html2canvas(document.getElementById("id-front"));
+      pdf.addImage(frontCanvas.toDataURL(), "PNG", 0, 0, 243, 153);
       pdf.save("student-id.pdf");
+    }
+
+    async function generateBatch() {
+      const csvFile = document.getElementById("csvUpload").files[0];
+      const photoFiles = document.getElementById("photoUpload").files;
+
+      if (!csvFile || photoFiles.length === 0) {
+        alert("Please upload CSV and select photos.");
+        return;
+      }
+
+      const photoMap = {};
+      for (const file of photoFiles) {
+        photoMap[file.name.toLowerCase()] = file;
+      }
+
+      Papa.parse(csvFile, {
+        header: true,
+        complete: async ({ data }) => {
+          const { jsPDF } = window.jspdf;
+          const pdf = new jsPDF({ unit: 'pt', format: [1008, 612], orientation: 'landscape' });
+
+          for (let row of data) {
+            if (!(row.name || row.studentNo)) continue;
+
+            const strand = (row.strand || "abm").toLowerCase();
+            const bg = `bg-${strand}.png`;
+
+            const front = document.getElementById("id-front").cloneNode(true);
+            front.style.backgroundImage = `url('${bg}')`;
+            front.style.position = "absolute";
+            front.style.left = "-9999px";
+            document.body.appendChild(front);
+
+            front.querySelector("#preview-name").textContent = row.name;
+            front.querySelector("#preview-studentNo").textContent = row.studentNo;
+            front.querySelector("#preview-dateIssued").textContent = row.dateIssued || "03 NOV 2023";
+            front.querySelector("#preview-validityPeriod").textContent = row.validityPeriod || "Two (2) Years Only";
+
+            const imgEl = front.querySelector("#preview-photo");
+            const photoFilename = row.photo ? row.photo.trim().toLowerCase() : "";
+            const matchingFile = photoMap[photoFilename];
+
+            if (matchingFile) {
+              const dataUrl = await new Promise(resolve => {
+                const reader = new FileReader();
+                reader.onload = e => resolve(e.target.result);
+                reader.readAsDataURL(matchingFile);
+              });
+              imgEl.src = dataUrl;
+              await waitForImageLoad(imgEl);
+            } else {
+              imgEl.src = "";
+            }
+
+            const frontCanvas = await html2canvas(front);
+
+            const pos = pdf.getNumberOfPages() * 4;
+            const idx = pos % 4;
+            if (idx === 0 && pdf.getNumberOfPages() > 0) pdf.addPage();
+
+            const x = 20 + (idx % 2) * (243 + 20);
+            const y = 20 + Math.floor(idx / 2) * (153 + 20);
+
+            pdf.addImage(frontCanvas.toDataURL(), "PNG", x, y, 243, 153);
+
+            front.remove();
+          }
+
+          pdf.save("batch-ids.pdf");
+        }
+      });
     }
   </script>
 </body>
