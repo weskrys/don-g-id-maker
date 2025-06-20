@@ -199,7 +199,11 @@
           const fronts = [];
           const backs = [];
 
-          for (let row of results.data) {
+          const rows = results.data.filter(row =>
+            row.name?.trim() || row.grade?.trim() || row.studentNo?.trim() || row.photo?.trim()
+          );
+
+          for (let row of rows) {
             const front = document.getElementById("id-front").cloneNode(true);
             const back = document.getElementById("id-back").cloneNode(true);
 
