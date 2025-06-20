@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>School ID Maker (Fixed photo + skip empty row)</title>
+  <title>School ID Maker (WORKING - fixed photos + skip empty row)</title>
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -70,7 +70,7 @@
 </head>
 <body>
   <div class="container py-4">
-    <h1 class="text-center mb-4">School ID Maker (Fixed photo + skip empty row)</h1>
+    <h1 class="text-center mb-4">School ID Maker (WORKING)</h1>
     <div class="row">
       <div class="col-md-5">
         <form id="singleForm" onsubmit="return false;">
@@ -117,6 +117,9 @@
       </div>
     </div>
   </div>
+
+  <!-- HIDDEN RENDER AREA (this is important) -->
+  <div id="render-area" style="position:absolute; left:-9999px; top:0; visibility:visible;"></div>
 
   <script>
     function waitForImageLoad(img) {
@@ -207,13 +210,9 @@
             const front = document.getElementById("id-front").cloneNode(true);
             const back = document.getElementById("id-back").cloneNode(true);
 
-            [front, back].forEach(el => {
-              el.style.visibility = "hidden";
-              el.style.position = "absolute";
-              el.style.top = "0";
-              el.style.left = "0";
-              document.body.appendChild(el);
-            });
+            const renderArea = document.getElementById("render-area");
+            renderArea.appendChild(front);
+            renderArea.appendChild(back);
 
             front.querySelector("#preview-name").textContent = row.name || "";
             front.querySelector("#preview-grade").textContent = row.grade || "";
