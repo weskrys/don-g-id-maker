@@ -5,19 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>School ID Maker - Standard Vertical Size</title>
 
-  <!-- Bootstrap 5 CSS CDN -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.0/jszip.min.js"></script>
 
   <style>
-    /* ID card at approx 324x204 px (3.375" × 2.125" at 96dpi) */
     .id-card {
-      width: 324px;
-      height: 204px;
+      width: 324px;   /* 3.375" x 96dpi */
+      height: 204px;  /* 2.125" x 96dpi */
       border: 1px solid #000;
       position: relative;
       background: linear-gradient(#e9f0fa, #d0e0f0);
@@ -137,10 +134,12 @@
           document.getElementById("preview-photo").src = event.target.result;
         };
         reader.readAsDataURL(file);
+      } else {
+        document.getElementById("preview-photo").src = "";
       }
     });
 
-    // Utility: wait for image load
+    // Wait for image load helper
     function waitForImageLoad(img) {
       return new Promise((resolve) => {
         if (img.complete && img.naturalHeight !== 0) {
@@ -156,22 +155,48 @@
       const { jsPDF } = window.jspdf;
       const pdf = new jsPDF({
         unit: 'pt',
-        format: [243, 153] // 3.375" x 2.125" in points
+        format: [243, 153] // standard ID size in points
       });
       const front = document.getElementById("id-front");
       const back = document.getElementById("id-back");
 
-      // Wait for image load before canvas
+      // wait for image to fully load
       await waitForImageLoad(document.getElementById("preview-photo"));
 
       const frontCanvas = await html2canvas(front);
       const backCanvas = await html2canvas(back);
       const frontImg = frontCanvas.toDataURL("image/png");
       const backImg = backCanvas.toDataURL("image/png");
+
       pdf.addImage(frontImg, "PNG", 0, 0, 243, 153);
       pdf.addPage();
       pdf.addImage(backImg, "PNG", 0, 0, 243, 153);
       pdf.save("student-id.pdf");
+    }
+
+    async function setPreviewData(row, zip=null) {
+      document.getElementById("preview-name").textContent = row.name || "";
+      document.getElementById("preview-grade").textContent = row.grade || "";
+      document.getElementById("preview-studentNo").textContent = row.studentNo || "";
+
+      const img = document.getElementById("preview-photo");
+      if (zip && row.photo) {
+        const photoFile = zip.file(row.photo);
+        if (photoFile) {
+          const blob = await photoFile.async("blob");
+          const reader = new FileReader();
+          const dataUrl = await new Promise(resolve => {
+            reader.onload = () => resolve(reader.result);
+            reader.readAsDataURL(blob);
+          });
+          img.src = dataUrl;
+          await waitForImageLoad(img);
+          return;
+        }
+      }
+      // fallback: no zip or photo missing
+      img.src = "";
+      await waitForImageLoad(img);
     }
 
     async function generateBatchPDFfromZip() {
@@ -203,24 +228,7 @@
 
           for (let i = 0; i < results.data.length; i++) {
             const row = results.data[i];
-            document.getElementById("preview-name").textContent = row.name || "";
-            document.getElementById("preview-grade").textContent = row.grade || "";
-            document.getElementById("preview-studentNo").textContent = row.studentNo || "";
-
-            const photoFile = zip.file(row.photo);
-            if (photoFile) {
-              const blob = await photoFile.async("blob");
-              const reader = new FileReader();
-              const dataUrl = await new Promise(resolve => {
-                reader.onload = () => resolve(reader.result);
-                reader.readAsDataURL(blob);
-              });
-              const img = document.getElementById("preview-photo");
-              img.src = dataUrl;
-              await waitForImageLoad(img);
-            } else {
-              document.getElementById("preview-photo").src = "";
-            }
+            await setPreviewData(row, zip);
 
             const front = document.getElementById("id-front");
             const back = document.getElementById("id-back");
@@ -241,7 +249,6 @@
     }
   </script>
 
-  <!-- Bootstrap 5 JS Bundle -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
