@@ -99,7 +99,7 @@
 
       <div class="col-md-7 d-flex flex-column align-items-center">
         <div id="id-front" class="id-card">
-          <img id="preview-photo" class="photo" alt="Student Photo" />
+          <img id="preview-photo" class="photo" alt="Student Photo" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8Xw8AAs8B9f8S2NcAAAAASUVORK5CYII=" />
           <div class="details">
             <div id="preview-name">Student Name</div>
             <div id="preview-grade">Grade & Section</div>
@@ -115,6 +115,8 @@
   <div id="render-area" style="position:absolute; left:-9999px; top:0; visibility:visible;"></div>
 
   <script>
+    const EMPTY_IMG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8Xw8AAs8B9f8S2NcAAAAASUVORK5CYII=";
+
     const preview = {
       name: document.getElementById("preview-name"),
       grade: document.getElementById("preview-grade"),
@@ -132,7 +134,7 @@
         reader.onload = e => preview.photo.src = e.target.result;
         reader.readAsDataURL(file);
       } else {
-        preview.photo.src = "";
+        preview.photo.src = EMPTY_IMG;
       }
     });
 
@@ -164,7 +166,6 @@
         return;
       }
 
-      // Build photo map: filename → file
       const photoMap = {};
       for (const file of photoFiles) {
         photoMap[file.name.toLowerCase()] = file;
@@ -204,7 +205,7 @@
               imgEl.src = dataUrl;
               await waitForImageLoad(imgEl);
             } else {
-              imgEl.src = "";
+              imgEl.src = EMPTY_IMG;
             }
 
             const frontCanvas = await html2canvas(front);
