@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>School ID Maker - Standard Vertical Size</title>
+  <title>School ID Maker - Fixed Size & Working Images</title>
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -12,25 +12,29 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.0/jszip.min.js"></script>
 
   <style>
+    /* Fixed size preview, no stretching */
     .id-card {
-      width: 324px;   /* 3.375" x 96dpi */
-      height: 204px;  /* 2.125" x 96dpi */
+      width: 324px !important;   /* 3.375" x 96dpi */
+      height: 204px !important;  /* 2.125" x 96dpi */
+      max-width: none !important;
+      max-height: none !important;
+      flex: none !important;
       border: 1px solid #000;
-      position: relative;
-      background: linear-gradient(#e9f0fa, #d0e0f0);
-      margin-bottom: 10px;
       border-radius: 10px;
       overflow: hidden;
       box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      background: linear-gradient(#e9f0fa, #d0e0f0);
+      position: relative;
+      margin-bottom: 10px;
     }
     .photo {
       position: absolute;
       top: 20px;
       left: 20px;
-      width: 80px;
-      height: 100px;
+      width: 80px !important;
+      height: 100px !important;
       background: #ccc;
-      object-fit: cover;
+      object-fit: cover !important;
       border-radius: 5px;
       border: 1px solid #666;
     }
@@ -55,11 +59,12 @@
       font-weight: bold;
       color: #555;
       font-size: 18px;
-      height: 204px; /* match front height */
-      width: 324px;  /* match front width */
+      height: 204px !important; /* match front height */
+      width: 324px !important;  /* match front width */
       border-radius: 10px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.2);
       margin-bottom: 10px;
+      position: relative;
     }
   </style>
 </head>
@@ -157,20 +162,41 @@
         unit: 'pt',
         format: [243, 153] // standard ID size in points
       });
-      const front = document.getElementById("id-front");
-      const back = document.getElementById("id-back");
 
-      // wait for image to fully load
-      await waitForImageLoad(document.getElementById("preview-photo"));
+      // Clone and offscreen attach
+      const frontOrig = document.getElementById("id-front");
+      const backOrig = document.getElementById("id-back");
+      const front = frontOrig.cloneNode(true);
+      const back = backOrig.cloneNode(true);
 
-      const frontCanvas = await html2canvas(front);
-      const backCanvas = await html2canvas(back);
+      front.style.position = "fixed";
+      front.style.top = "-9999px";
+      front.style.left = "-9999px";
+      back.style.position = "fixed";
+      back.style.top = "-9999px";
+      back.style.left = "-9999px";
+
+      document.body.appendChild(front);
+      document.body.appendChild(back);
+
+      // Wait image load on clone
+      const img = front.querySelector("#preview-photo");
+      await waitForImageLoad(img);
+
+      // Capture with CORS and allowTaint off
+      const frontCanvas = await html2canvas(front, { useCORS: true, allowTaint: false });
+      const backCanvas = await html2canvas(back, { useCORS: true, allowTaint: false });
+
+      front.remove();
+      back.remove();
+
       const frontImg = frontCanvas.toDataURL("image/png");
       const backImg = backCanvas.toDataURL("image/png");
 
       pdf.addImage(frontImg, "PNG", 0, 0, 243, 153);
       pdf.addPage();
       pdf.addImage(backImg, "PNG", 0, 0, 243, 153);
+
       pdf.save("student-id.pdf");
     }
 
@@ -194,7 +220,7 @@
           return;
         }
       }
-      // fallback: no zip or photo missing
+      // fallback no image
       img.src = "";
       await waitForImageLoad(img);
     }
@@ -228,13 +254,54 @@
 
           for (let i = 0; i < results.data.length; i++) {
             const row = results.data[i];
-            await setPreviewData(row, zip);
 
-            const front = document.getElementById("id-front");
-            const back = document.getElementById("id-back");
+            // Clone nodes for each ID to avoid conflicts
+            const frontOrig = document.getElementById("id-front");
+            const backOrig = document.getElementById("id-back");
+            const front = frontOrig.cloneNode(true);
+            const back = backOrig.cloneNode(true);
 
-            const frontCanvas = await html2canvas(front);
-            const backCanvas = await html2canvas(back);
+            front.style.position = "fixed";
+            front.style.top = "-9999px";
+            front.style.left = "-9999px";
+            back.style.position = "fixed";
+            back.style.top = "-9999px";
+            back.style.left = "-9999px";
+
+            document.body.appendChild(front);
+            document.body.appendChild(back);
+
+            // Set preview data on clone
+            front.querySelector("#preview-name").textContent = row.name || "";
+            front.querySelector("#preview-grade").textContent = row.grade || "";
+            front.querySelector("#preview-studentNo").textContent = row.studentNo || "";
+
+            if (zip && row.photo) {
+              const photoFile = zip.file(row.photo);
+              if (photoFile) {
+                const blob = await photoFile.async("blob");
+                const reader = new FileReader();
+                const dataUrl = await new Promise(resolve => {
+                  reader.onload = () => resolve(reader.result);
+                  reader.readAsDataURL(blob);
+                });
+                front.querySelector("#preview-photo").src = dataUrl;
+              } else {
+                front.querySelector("#preview-photo").src = "";
+              }
+            } else {
+              front.querySelector("#preview-photo").src = "";
+            }
+
+            // Wait image load
+            await waitForImageLoad(front.querySelector("#preview-photo"));
+
+            const frontCanvas = await html2canvas(front, { useCORS: true, allowTaint: false });
+            const backCanvas = await html2canvas(back, { useCORS: true, allowTaint: false });
+
+            front.remove();
+            back.remove();
+
             const frontImg = frontCanvas.toDataURL("image/png");
             const backImg = backCanvas.toDataURL("image/png");
 
