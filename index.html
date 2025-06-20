@@ -2,57 +2,111 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>School ID Maker</title>
+
+  <!-- Bootstrap 5 CSS CDN -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.0/jszip.min.js"></script>
+
   <style>
-    * { box-sizing: border-box; }
-    body { font-family: Arial, sans-serif; padding: 20px; margin: 0; }
-    h1 { text-align: center; }
-    .container { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; }
-    .form, .preview { flex: 1 1 300px; max-width: 500px; }
-    .id-card { width: 300px; height: 180px; border: 1px solid #000; position: relative; background: linear-gradient(#e9f0fa, #d0e0f0); margin-bottom: 10px; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
-    .photo { position: absolute; top: 20px; left: 20px; width: 60px; height: 80px; background: #ccc; object-fit: cover; border-radius: 5px; }
-    .details { position: absolute; top: 20px; left: 100px; font-size: 14px; color: #333; line-height: 1.4; }
-    .back { background: #dfeaf2; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #555; }
-    input[type="file"] { margin-bottom: 10px; }
-    label { display: block; margin: 5px 0; }
-    button { margin-top: 10px; padding: 10px 15px; font-size: 14px; cursor: pointer; }
+    .id-card {
+      width: 300px;
+      height: 180px;
+      border: 1px solid #000;
+      position: relative;
+      background: linear-gradient(#e9f0fa, #d0e0f0);
+      margin-bottom: 10px;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    .photo {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      width: 60px;
+      height: 80px;
+      background: #ccc;
+      object-fit: cover;
+      border-radius: 5px;
+    }
+    .details {
+      position: absolute;
+      top: 20px;
+      left: 100px;
+      font-size: 14px;
+      color: #333;
+      line-height: 1.4;
+    }
+    .back {
+      background: #dfeaf2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      color: #555;
+    }
   </style>
 </head>
 <body>
-  <h1>School ID Maker</h1>
-  <div class="container">
-    <div class="form">
-      <label>Name: <input type="text" id="name" /></label>
-      <label>Grade & Section: <input type="text" id="grade" /></label>
-      <label>Student Number: <input type="text" id="studentNo" /></label>
-      <label>Upload Photo: <input type="file" id="photo" accept="image/*" /></label>
-      <button onclick="generatePDF()">Download PDF</button>
-      <hr>
-      <h3>Batch Import ZIP (CSV + Photos)</h3>
-      <input type="file" id="zipUpload" accept=".zip" />
-      <button onclick="generateBatchPDFfromZip()">Generate Batch PDF</button>
-    </div>
-    <div class="preview">
-      <div id="id-front" class="id-card">
-        <img id="preview-photo" class="photo" />
-        <div class="details">
-          <div id="preview-name">Student Name</div>
-          <div id="preview-grade">Grade & Section</div>
-          <div id="preview-studentNo">Student No.</div>
+  <div class="container py-4">
+    <h1 class="text-center mb-4">School ID Maker</h1>
+    <div class="row">
+      <!-- Form Column -->
+      <div class="col-md-5">
+        <form id="singleForm">
+          <div class="mb-3">
+            <label for="name" class="form-label">Name</label>
+            <input type="text" id="name" class="form-control" placeholder="Student Name" />
+          </div>
+          <div class="mb-3">
+            <label for="grade" class="form-label">Grade & Section</label>
+            <input type="text" id="grade" class="form-control" placeholder="Grade & Section" />
+          </div>
+          <div class="mb-3">
+            <label for="studentNo" class="form-label">Student Number</label>
+            <input type="text" id="studentNo" class="form-control" placeholder="Student Number" />
+          </div>
+          <div class="mb-3">
+            <label for="photo" class="form-label">Upload Photo</label>
+            <input type="file" id="photo" accept="image/*" class="form-control" />
+          </div>
+          <button type="button" class="btn btn-primary w-100" onclick="generatePDF()">Download PDF</button>
+        </form>
+
+        <hr />
+
+        <h4>Batch Import ZIP (CSV + Photos)</h4>
+        <div class="mb-3">
+          <input type="file" id="zipUpload" accept=".zip" class="form-control" />
         </div>
+        <button type="button" class="btn btn-success w-100" onclick="generateBatchPDFfromZip()">Generate Batch PDF</button>
       </div>
-      <div id="id-back" class="id-card back">
-        <div>BACK OF ID</div>
+
+      <!-- Preview Column -->
+      <div class="col-md-7 d-flex flex-column align-items-center">
+        <div id="id-front" class="id-card mb-3 w-100">
+          <img id="preview-photo" class="photo" alt="Student Photo" />
+          <div class="details">
+            <div id="preview-name">Student Name</div>
+            <div id="preview-grade">Grade & Section</div>
+            <div id="preview-studentNo">Student No.</div>
+          </div>
+        </div>
+        <div id="id-back" class="id-card back w-100">
+          BACK OF ID
+        </div>
       </div>
     </div>
   </div>
 
   <script>
+    // Live preview bindings
     document.getElementById("name").addEventListener("input", e => {
       document.getElementById("preview-name").textContent = e.target.value;
     });
@@ -90,14 +144,20 @@
 
     async function generateBatchPDFfromZip() {
       const zipInput = document.getElementById("zipUpload");
-      if (!zipInput.files[0]) return alert("Please upload a ZIP file");
+      if (!zipInput.files[0]) {
+        alert("Please upload a ZIP file");
+        return;
+      }
 
       const zipFile = zipInput.files[0];
       const jszip = new JSZip();
       const zip = await jszip.loadAsync(zipFile);
 
       const csvFile = Object.values(zip.files).find(f => f.name.endsWith(".csv"));
-      if (!csvFile) return alert("CSV file not found in ZIP");
+      if (!csvFile) {
+        alert("CSV file not found in ZIP");
+        return;
+      }
 
       const csvContent = await csvFile.async("string");
       Papa.parse(csvContent, {
@@ -105,6 +165,7 @@
         complete: async function(results) {
           const { jsPDF } = window.jspdf;
           const pdf = new jsPDF();
+
           for (let i = 0; i < results.data.length; i++) {
             const row = results.data[i];
             document.getElementById("preview-name").textContent = row.name || "";
@@ -119,7 +180,12 @@
                 reader.onload = () => resolve(reader.result);
                 reader.readAsDataURL(blob);
               });
-              document.getElementById("preview-photo").src = dataUrl;
+
+              await new Promise(resolve => {
+                const img = document.getElementById("preview-photo");
+                img.onload = () => resolve();
+                img.src = dataUrl;
+              });
             } else {
               document.getElementById("preview-photo").src = "";
             }
@@ -141,5 +207,8 @@
       });
     }
   </script>
+
+  <!-- Bootstrap 5 JS Bundle (includes Popper) -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
